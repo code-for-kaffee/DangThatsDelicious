@@ -32,7 +32,12 @@ const storeSchema = new mongoose.Schema({
       required: 'You must supply an address!'
     }
   },
-  photo: String
+  photo: String,
+  author: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User',
+    require: 'You must supply an author'
+  }
 });
 
 storeSchema.pre('save', async function(next) {
@@ -52,7 +57,7 @@ storeSchema.pre('save', async function(next) {
   // TODO make more resiliant so slugs are unique
 });
 
-storeSchema.statics.getTagList= function() {
+storeSchema.statics.getTagList = function() {
   return this.aggregate([
     {$unwind: '$tags' },
     { $group: { _id: '$tags', count: { $sum:1 } } },
