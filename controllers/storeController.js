@@ -13,11 +13,12 @@ const multerOptions = {
       next(null, true);
     } else {
       next({
-         message: 'That File is not allowed!' },
-         false
-          );
+        message: 'That File is not allowed!'
+      },
+        false
+      );
 
-      }
+    }
   }
 }
 exports.homePage = (req, res) => {
@@ -41,7 +42,7 @@ exports.resize = async (req, res, next) => {
   const photo = await jimp.read(req.file.buffer);
   await photo.resize(800, jimp.AUTO);
   await photo.write(`./public/uploads/${req.body.photo}`);
-  next();  
+  next();
 }
 
 exports.createStore = async (req, res) => {
@@ -82,13 +83,10 @@ exports.updateStore = async (req, res) => {
   res.redirect(`/stores/${store._id}/edit`);
   // Redriect them the store and tell them it worked
 };
-
 exports.getStoreBySlug = async (req, res, next) => {
-
-  const store = await await Store.findOne({ slug: req.params.slug }).populated(author);
-  if(!store) return next();
-  res.render('store', {store, title:store.name} )
-
+  const store = await Store.findOne({ slug: req.params.slug }).populate('author reviews');
+  if (!store) return next();
+  res.render('store', { store, title: store.name });
 };
 
 exports.getStoresByTag = async (req, res) => {
@@ -97,5 +95,42 @@ exports.getStoresByTag = async (req, res) => {
   const tagsPromises = await Store.getTagList();
   const storesPromises = Store.find({ tags: tagQuery });
   const [tags, stores] = await Promise.all([tagsPromises, storesPromises]);
-  res.render('tag', {tags, title: 'tags', tag, stores});
+  res.render('tag', { tags, title: 'tags', tag, stores });
+}
+
+exports.searchStores = async (req, res) => {
+  const stores = await Store.find({
+    $text : {
+      $search:req.query.q
+    }
+  },
+  {
+    score: { $meta:'textScore' }
+  })
+  .sort({
+    score: { $meta: 'textScore' }
+  })
+  .limit(5);
+  res.json(stores) ;
+}
+
+exports.mapStores = async (req, res) => {
+  const coordinates = [req.query.lng, req.query.lat].map(parseFloat);
+  const q = {
+    location: {
+      $near: {
+        $geometry: {
+          type: 'Point',
+          coordinates
+        },
+        $maxDistance: 10000
+      }
+    }
+  }  
+  const stores = await Store.find(q).select('slug name description location').limit(10);
+  res.json(stores)
+}
+
+exports.mapGet = async (req, res) => {
+  res.render('map', {title: "Map"})
 }

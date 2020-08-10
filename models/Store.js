@@ -36,10 +36,17 @@ const storeSchema = new mongoose.Schema({
   author: {
     type: mongoose.Schema.ObjectId,
     ref: 'User',
-    require: 'You must supply an author'
+    required: 'You must supply an author!'
   }
 });
 
+storeSchema.index({
+  name: 'text', 
+  description: 'text'
+},{
+  location: '2dsphere'
+});
+ 
 storeSchema.pre('save', async function(next) {
   if (!this.isModified('name')) {
     next(); // skip it

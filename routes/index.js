@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {getStores, getStoreBySlug, getStoresByTag, resize, createStore, updateStore, addStore, editStore, upload} = require('../controllers/storeController');
+const {getStores, getStoreBySlug, getStoresByTag, resize, createStore, updateStore, addStore, editStore, searchStores, upload, mapStores, mapGet} = require('../controllers/storeController');
 const { catchErrors } = require('../handlers/errorHandlers');
 const {loginForm, userRegister, validateRegister, register, account, updateAccount} = require('../controllers/userController');
 const {login, logout, isLoggedIn, forgot, reset, confirmedPassword, update} = require('../controllers/authController');
@@ -22,12 +22,17 @@ router.post('/register', validateRegister, register, login);
 router.get('/login', loginForm );
 router.post('/login', login);
 router.get('/register', userRegister);
-router.get('/logout', logout);
+router.get('/logout', logout); 
 
 router.get('/account', isLoggedIn, account);
 router.post('/account', catchErrors(updateAccount));
 router.post('/account/forgot',  catchErrors(forgot));
 router.get('/account/reset/:token', catchErrors(reset));
 router.post('/account/reset/:token', confirmedPassword, catchErrors(update));
+
+router.get('/map', catchErrors(mapGet));
+
+router.get('/api/search', catchErrors(searchStores));
+router.get('/api/stores/near', catchErrors(mapStores))
 
 module.exports = router;
