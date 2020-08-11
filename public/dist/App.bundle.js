@@ -990,6 +990,8 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
 var _bling = __webpack_require__(2);
 
 var _axios = __webpack_require__(3);
@@ -1013,7 +1015,39 @@ function loadPlaces(map) {
 
     _axios2.default.get('/api/stores/near?lat=' + lat + '&lng=' + lng).then(function (res) {
         var places = res.data;
-        console.log(places);
+        if (!places.length) {
+            alert('No places found!');
+            return;
+        }
+
+        var bounds = new google.maps.LatLngBounds();
+        var infoWindow = new google.maps.InfoWindow();
+
+        var markers = places.map(function (place) {
+            var _place$location$coord = _slicedToArray(place.location.coordinates, 2),
+                placeLng = _place$location$coord[0],
+                placeLat = _place$location$coord[1];
+
+            var position = { lat: placeLat, lng: placeLng };
+            bounds.extend(position);
+            var marker = new google.maps.Marker({
+                map: map,
+                position: position
+            });
+            marker.place = place;
+            return marker;
+        });
+
+        markers.forEach(function (marker) {
+            return marker.addListener('click', function () {
+                var html = '\n            <div class="popup">\n                <a href="/store/' + this.place.slug + '">\n                    <img src="/uploads/' + (this.place.photo || 'store.png') + '" alt="' + this.place.name + '" />\n                    <p> ' + this.place.name + ' - ' + this.place.location.address + '</p>\n                </a>\n            </div>';
+                infoWindow.setContent(html);
+                infoWindow.open(map, this);
+            });
+        });
+
+        map.setCenter(bounds.getCenter());
+        map.fitBounds(bounds);
     });
 }
 
@@ -1023,7 +1057,11 @@ function makeMap(mapDiv) {
     var map = new google.maps.Map(mapDiv, mapOptions);
     loadPlaces(map);
     var input = (0, _bling.$)('[name="geolocate"]');
-    var autocomplete = google.maps.places.Autocomplete(input);
+    var autocomplete = new google.maps.places.Autocomplete(input);
+    autocomplete.addListener('place_changed', function () {
+        var place = autocomplete.getPlace();
+        loadPlaces(map, place.geometry.location.lat(), place.geometry.location.lng());
+    });
 }
 
 exports.default = makeMap;
@@ -2748,6 +2786,10 @@ var _map = __webpack_require__(11);
 
 var _map2 = _interopRequireDefault(_map);
 
+var _heart = __webpack_require__(34);
+
+var _heart2 = _interopRequireDefault(_heart);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 (0, _autocomplete2.default)((0, _bling.$)('#address'), (0, _bling.$)('#lat'), (0, _bling.$)('#lng'));
@@ -2755,6 +2797,47 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 (0, _typeAhead2.default)((0, _bling.$)('.search'));
 
 (0, _map2.default)((0, _bling.$)('#map'));
+
+var heartForms = (0, _bling.$$)('form.heart');
+heartForms.on('submit', _heart2.default);
+
+/***/ }),
+/* 33 */,
+/* 34 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _axios = __webpack_require__(3);
+
+var _axios2 = _interopRequireDefault(_axios);
+
+var _bling = __webpack_require__(2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function ajaxHeart(e) {
+    var _this = this;
+
+    e.preventDefault();
+    _axios2.default.post(this.action).then(function (res) {
+        var isHearted = _this.heart.classList.toggle('heart__button--hearted');
+        (0, _bling.$)('.heart-count').textContent = res.data.hearts.length;
+        if (isHearted) {
+            _this.heart.classList.add('heart__button--float');
+            setTimeout(function () {
+                return _this.heart.classList.remove('heart__button--float');
+            }, 2500);
+        }
+    }).catch(console.error);
+}
+
+exports.default = ajaxHeart;
 
 /***/ })
 /******/ ]);

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {getStores, getStoreBySlug, getStoresByTag, resize, createStore, updateStore, addStore, editStore, searchStores, upload, mapStores, mapGet} = require('../controllers/storeController');
+const {getStores, getStoreBySlug, getStoresByTag, resize, createStore, updateStore, addStore, editStore, searchStores, upload, mapStores, mapGet, heartStore, getHearts} = require('../controllers/storeController');
 const { catchErrors } = require('../handlers/errorHandlers');
 const {loginForm, userRegister, validateRegister, register, account, updateAccount} = require('../controllers/userController');
 const {login, logout, isLoggedIn, forgot, reset, confirmedPassword, update} = require('../controllers/authController');
@@ -31,8 +31,9 @@ router.get('/account/reset/:token', catchErrors(reset));
 router.post('/account/reset/:token', confirmedPassword, catchErrors(update));
 
 router.get('/map', catchErrors(mapGet));
+router.get('/hearts', isLoggedIn, catchErrors(getHearts));
 
 router.get('/api/search', catchErrors(searchStores));
 router.get('/api/stores/near', catchErrors(mapStores))
-
+router.post('/api/stores/:id/heart', catchErrors(heartStore))
 module.exports = router;

@@ -3,6 +3,7 @@ const Store = require('../models/Store');
 const multer = require('multer');
 const jimp = require('jimp');
 const uuid = require('uuid');
+const User = require('../models/User');
 
 
 const multerOptions = {
@@ -59,7 +60,7 @@ exports.getStores = async (req, res) => {
 };
 
 const confirmOwner = (store, user) => {
-  if (!store.author.equals(user.id)) {
+  if (!store.author.equals(user._id)) {
     throw Error('You must own the store in order to edit');
   }
 }
@@ -91,27 +92,27 @@ exports.getStoreBySlug = async (req, res, next) => {
 
 exports.getStoresByTag = async (req, res) => {
   const tag = req.params.tag;
-  const tagQuery = tag || { $exists: true };
+  const tagQuery = tag || { $exists: true, $ne: [] };
   const tagsPromises = await Store.getTagList();
-  const storesPromises = Store.find({ tags: tagQuery });
-  const [tags, stores] = await Promise.all([tagsPromises, storesPromises]);
+  const storesPromise = Store.find({ tags: tagQuery });
+  const [tags, stores] = await Promise.all([tagsPromises, storesPromise]);
   res.render('tag', { tags, title: 'tags', tag, stores });
 }
 
 exports.searchStores = async (req, res) => {
   const stores = await Store.find({
-    $text : {
-      $search:req.query.q
+    $text: {
+      $search: req.query.q
     }
   },
-  {
-    score: { $meta:'textScore' }
-  })
-  .sort({
-    score: { $meta: 'textScore' }
-  })
-  .limit(5);
-  res.json(stores) ;
+    {
+      score: { $meta: 'textScore' }
+    })
+    .sort({
+      score: { $meta: 'textScore' }
+    })
+    .limit(5);
+  res.json(stores);
 }
 
 exports.mapStores = async (req, res) => {
@@ -126,11 +127,33 @@ exports.mapStores = async (req, res) => {
         $maxDistance: 10000
       }
     }
-  }  
-  const stores = await Store.find(q).select('slug name description location').limit(10);
+  }
+  const stores = await Store.find(q).select('slug name description location photo').limit(10);
   res.json(stores)
 }
 
 exports.mapGet = async (req, res) => {
-  res.render('map', {title: "Map"})
+  res.render('map', { title: "Map" })
 }
+
+exports.heartStore = async (req, res) => {
+  const hearts = req.user.hearts.map(obj => {
+    obj.toString()
+  });
+  const operator = hearts.includes(req.params.id) ? '$pull' : '$addToSet';
+  const user = await User.findByIdAndUpdate(req.user._id, {
+    [operator]: { hearts: req.params.id }
+  },
+    { new: true });
+
+
+  res.json(user);
+}
+
+exports.getHearts = async (req, res) => {
+  const stores = await Store.find({
+    _id: { $in: req.user.hearts }
+  });
+  res.render('stores', {title: 'Hearted Stores', stores})
+};
+
